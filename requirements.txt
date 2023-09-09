@@ -1,0 +1,14 @@
+cloudpickle==2.2.1
+Farama-Notifications==0.0.4
+gymnasium==0.29.1
+imageio==2.26.1
+keyboard==0.13.5
+markdown-it-py==2.1.0
+mdurl==0.1.2
+meshio==5.3.4
+numpy==1.24.1
+Pillow==9.4.0
+pygame==2.5.1
+Pygments==2.14.0
+rich==13.2.0
+typing_extensions==4.7.1
