@@ -7,7 +7,7 @@ import random
 from typing import Tuple
 import gymnasium as gym
 import numpy as np
-from algorithms.q_learn import EpsilonGreedyQLearning, ExplorationFuncQLearning, QLearning
+from algorithms.q_learning import EpsilonGreedyQLearning, ExplorationFuncQLearning, Sarsa
 
 
 def reset_env(env: gym.Env) -> Tuple[np.array]:
@@ -24,9 +24,10 @@ def main():
     #                    actions=np.array([0, 1, 2]))
     #q_learn = EpsilonGreedyQLearning(states=np.array(states).T.reshape(-1, 2),
     #                                 actions=np.array([0, 1, 2]))
-    q_learn = ExplorationFuncQLearning(states=np.array(states).T.reshape(-1, 2),
-                                       actions=np.array([0, 1, 2]))
-            
+    #q_learn = ExplorationFuncQLearning(states=np.array(states).T.reshape(-1, 2),
+    #                                   actions=np.array([0, 1, 2]))        
+    q_learn = Sarsa(states=np.array(states).T.reshape(-1, 2),
+                    actions=np.array([0, 1, 2]))            
 
     for _ in range(100):
         observation, action = reset_env(env=env)
@@ -58,6 +59,7 @@ def main():
             elif keyboard.is_pressed('s'):
                 # slow execution of the simulation
                 env.metadata['render_fps'] = 30            
+                
         q_learn.episode_exit_setup()            
     env.close()
         
