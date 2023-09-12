@@ -1,14 +1,13 @@
 """
 Solve the MountainCar environment with Q-learning algorithm. 
 """
-
 import keyboard
 import random
-from typing import Tuple
+from typing import Tuple, Dict, Any
 import gymnasium as gym
 import numpy as np
-from algorithms.q_learning import EpsilonGreedyQLearning, ExplorationFuncQLearning, Sarsa
-
+from algorithms.q_learning import QLearning, EpsilonGreedyQLearning, ExplorationFuncQLearning, Sarsa
+from algorithms.utils import get_states_delta_from_n_intevals
 
 def reset_env(env: gym.Env) -> Tuple[np.array]:
     observation, _ = env.reset(seed=42)
@@ -17,22 +16,33 @@ def reset_env(env: gym.Env) -> Tuple[np.array]:
 
 
 def main():
-    env = gym.make("MountainCar-v0", render_mode='human')        
-    states = np.meshgrid(np.linspace(-1.2, 0.6, 20), np.linspace(-.07, .07, 20))    
+    env = gym.make("MountainCar-v0")#, render_mode='human')  
+    n_intervals = [20, 20]      
+    states_delta = get_states_delta_from_n_intevals(env=env, n_intervals=n_intervals)
+    states_info: Dict[str, Any] = {
+        "delta": states_delta,
+        "low": env.observation_space.low,
+        "n_intervals": n_intervals
+        }
 
-    #q_learn = QLearning(states=np.array(states).T.reshape(-1, 2),
+    #q_learn = QLearning(states_info=states_info,    
     #                    actions=np.array([0, 1, 2]))
-    #q_learn = EpsilonGreedyQLearning(states=np.array(states).T.reshape(-1, 2),
-    #                                 actions=np.array([0, 1, 2]))
-    #q_learn = ExplorationFuncQLearning(states=np.array(states).T.reshape(-1, 2),
-    #                                   actions=np.array([0, 1, 2]))        
-    q_learn = Sarsa(states=np.array(states).T.reshape(-1, 2),
-                    actions=np.array([0, 1, 2]))            
 
-    for _ in range(100):
+    q_learn = EpsilonGreedyQLearning(states_info=states_info,
+                                     actions=np.array([0, 1, 2]))
+    
+    #q_learn = ExplorationFuncQLearning(states_info=states_info,
+    #                                   actions=np.array([0, 1, 2]))        
+    
+    #q_learn = Sarsa(states_info=states_info,
+    #                actions=np.array([0, 1, 2]))            
+
+    for episode in range(1, 2000):
+        print(f"episode : {episode}", flush=True)
+
         observation, action = reset_env(env=env)
         q_learn.episode_start_setup(obs=observation, action=action)
-
+        
         terminated = False
         while not terminated:                
             # actions 
@@ -55,10 +65,10 @@ def main():
                 exit(-1)
             elif keyboard.is_pressed('f'):
                 # fast execution of the simulation
-                env.metadata['render_fps'] = 10000
+                env.metadata['render_fps'] = 1000
             elif keyboard.is_pressed('s'):
                 # slow execution of the simulation
-                env.metadata['render_fps'] = 30            
+                env.metadata['render_fps'] = 30                                              
                 
         q_learn.episode_exit_setup()            
     env.close()
