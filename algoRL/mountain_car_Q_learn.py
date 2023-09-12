@@ -1,7 +1,7 @@
 """
 Solve the MountainCar environment with Q-learning algorithm. 
 """
-import keyboard
+#import keyboard
 import random
 from typing import Tuple, Dict, Any
 import gymnasium as gym
@@ -36,14 +36,17 @@ def main():
     
     #q_learn = Sarsa(states_info=states_info,
     #                actions=np.array([0, 1, 2]))            
-
-    for episode in range(1, 2000):
-        print(f"episode : {episode}", flush=True)
+    
+    n_steps = 0
+    for episode in range(2000):
+        if episode%50 == 0:
+            print(f"episode: {episode} n_steps: {n_steps}", flush=True)
 
         observation, action = reset_env(env=env)
         q_learn.episode_start_setup(obs=observation, action=action)
         
-        terminated = False
+        terminated = False        
+        n_steps = 0
         while not terminated:                
             # actions 
             # + discrete: action {
@@ -54,7 +57,8 @@ def main():
 
             observation, reward, terminated, _, _ = env.step(action)                   
             action = q_learn.execute(obs=observation, reward=reward)        
-            
+            n_steps += 1            
+            """
             # keyboard commands
             if keyboard.is_pressed('q'):    
                 # exit from episode
@@ -68,7 +72,7 @@ def main():
                 env.metadata['render_fps'] = 1000
             elif keyboard.is_pressed('s'):
                 # slow execution of the simulation
-                env.metadata['render_fps'] = 30                                              
+                env.metadata['render_fps'] = 30   """                                           
                 
         q_learn.episode_exit_setup()            
     env.close()

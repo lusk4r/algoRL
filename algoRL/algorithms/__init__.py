@@ -6,7 +6,7 @@ import numpy as np
 class RLAlgorithm(ABC):
 
     @abstractmethod
-    def execute(self, obs: np.array, reward: np.array) -> np.array:
+    def execute(self, obs: np.array, reward: float) -> np.array:
         ...
 
 
@@ -35,5 +35,5 @@ class ApproximateRL(RLAlgorithm):
     def next_action_strategy(self) -> Tuple[float, int]:
         ...
 
-    def execute(self, obs: np.array, reward: np.array) -> np.array:
+    def execute(self, obs: np.array, reward: float) -> np.array:
         ...

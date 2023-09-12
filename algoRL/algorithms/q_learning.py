@@ -30,7 +30,7 @@ class QLearning(ApproximateRL):
         next_action_index = np.argmax(self.q_star[self.curr_state_index])        
         return self.q_star[self.curr_state_index + (next_action_index,)], next_action_index
 
-    def execute(self, obs: np.array, reward: np.array) -> Any:                
+    def execute(self, obs: np.array, reward: float) -> Any:                
         if self.prev_state_index is None:
             raise ValueError("Set previous state index")
         
@@ -69,8 +69,8 @@ class EpsilonGreedyQLearning(QLearning):
         """ 
         next_action_index = np.argmax(self.q_star[self.curr_state_index])
         optimal_exp_val = self.q_star[self.curr_state_index + (next_action_index, )]
-        if random.random() < self.epsilon:            
-            next_action_index = random.randint(0, self.actions.shape[0]-1)
+        if random.random() < self.epsilon:                                
+            next_action_index = random.randint(0, self.q_star.shape[-1]-1)
 
         return optimal_exp_val, next_action_index
 
@@ -119,6 +119,6 @@ class Sarsa(EpsilonGreedyQLearning):
         """ 
         next_action_index = np.argmax(self.q_star[self.curr_state_index])        
         if random.random() < self.epsilon:            
-            next_action_index = random.randint(0, self.actions.shape[0]-1)
+            next_action_index = random.randint(0, self.q_star.shape[-1]-1)
 
         return self.q_star[self.curr_state_index + (next_action_index, )], next_action_index        
