@@ -3,10 +3,21 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class RLAlgorithm(ABC):
-
+class RLAlgorithm(ABC):    
     @abstractmethod
     def execute(self, obs: np.array, reward: float) -> np.array:
+        ...
+    
+    @abstractmethod
+    def save_model(self) -> None:
+        ...
+
+    @abstractmethod
+    def load_model(self) -> None:
+        ...
+
+    @abstractmethod
+    def set_test_setup(self) -> None:
         ...
 
 
@@ -36,4 +47,13 @@ class ApproximateRL(RLAlgorithm):
         ...
 
     def execute(self, obs: np.array, reward: float) -> np.array:
+        ...
+
+    def save_model(self) -> None:
+        ...
+
+    def load_model(self) -> None:
+        ...
+
+    def set_test_setup(self) -> None:
         ...
