@@ -103,7 +103,6 @@ class ExplorationFuncQLearning(QLearning):
     def episode_exit_setup(self):
         if self.curiosity >= 0.0:    
             self.curiosity -= self.curiosity_decay
-            print(self.curiosity, flush=True)
 
     def set_test_setup(self) -> None:
         self.curiosity = 0.0
