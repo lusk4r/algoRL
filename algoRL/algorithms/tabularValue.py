@@ -1,11 +1,51 @@
 import os 
 import random 
+from abc import abstractmethod
 from typing import Any, Tuple, Dict
-from algorithms import ApproximateRL
+from algorithms import RLAlgorithm
 import numpy as np
 
 
-class QLearning(ApproximateRL):
+class TabularValueRL(RLAlgorithm):
+    def __init__(self, actions: np.array,
+                 states_info: Dict[str, Any]) -> None:        
+        self.actions = actions
+        self.action_index = None
+        self.states_info = states_info
+        self.curr_state_index = None           
+        self.prev_state_index = None   
+    
+    def get_nearest_state_index(self, obs: np.array) -> Tuple[int]:
+        ids = (obs - self.states_info['low'])/self.states_info['delta']
+        return tuple([round(id) for id in ids])
+        
+    @abstractmethod
+    def episode_start_setup(self, obs: np.array, action: np.array):
+        ...
+
+    @abstractmethod
+    def episode_exit_setup(self):
+        ...
+
+    @abstractmethod
+    def next_action_strategy(self) -> Tuple[float, int]:
+        ...
+
+    def execute(self, obs: np.array, reward: float) -> np.array:
+        ...
+
+    def save_model(self) -> None:
+        ...
+
+    def load_model(self) -> None:
+        ...
+
+    def set_test_setup(self) -> None:
+        ...
+
+
+
+class QLearning(TabularValueRL):
     def __init__(self, actions: np.array,
                  states_info: Dict[str, Any],
                  lr: float = .1, 
@@ -64,7 +104,7 @@ class QLearning(ApproximateRL):
 class EpsilonGreedyQLearning(QLearning):
     def __init__(self, actions: np.array, states_info: Dict[str, Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
         super().__init__(actions, states_info, lr, discount_rate)
-        self.epsilon = 0.95
+        self.epsilon = 0.5
         self.epsilon_decay = 0.0001
 
     def episode_exit_setup(self):
@@ -96,7 +136,7 @@ class ExplorationFuncQLearning(QLearning):
     def __init__(self, actions: np.array, states_info: Dict[str, Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
         super().__init__(actions, states_info, lr, discount_rate)   
         self.curiosity = 1
-        self.curiosity_decay = 0.01
+        self.curiosity_decay = 0.001
         # n is the number of times action `a` was chosen in state `s` 
         self.n = self.q_star.copy() 
         
