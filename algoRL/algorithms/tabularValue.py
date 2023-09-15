@@ -8,7 +8,7 @@ import numpy as np
 
 class TabularValueRL(RLAlgorithm):
     def __init__(self, actions: np.array,
-                 states_info: Dict[str, Any]) -> None:        
+                 states_info: Tuple[Any]) -> None:        
         self.actions = actions
         self.action_index = None
         self.states_info = states_info
@@ -16,7 +16,7 @@ class TabularValueRL(RLAlgorithm):
         self.prev_state_index = None   
     
     def get_nearest_state_index(self, obs: np.array) -> Tuple[int]:
-        ids = (obs - self.states_info['low'])/self.states_info['delta']
+        ids = (obs - self.states_info.low_val)/self.states_info.delta_dim
         return tuple([round(id) for id in ids])
         
     @abstractmethod
@@ -47,11 +47,11 @@ class TabularValueRL(RLAlgorithm):
 
 class QLearning(TabularValueRL):
     def __init__(self, actions: np.array,
-                 states_info: Dict[str, Any],
+                 states_info: Tuple[Any],
                  lr: float = .1, 
                  discount_rate: float = .95) -> None:
         super().__init__(actions, states_info)                     
-        self.q_star = np.zeros(shape=tuple(states_info['dims']) + (len(actions), ))       
+        self.q_star = np.zeros(shape=tuple(states_info.n_intervals) + (len(actions), ))       
         self.lr = lr
         self.discount_rate = discount_rate
 
@@ -102,7 +102,7 @@ class QLearning(TabularValueRL):
     
 
 class EpsilonGreedyQLearning(QLearning):
-    def __init__(self, actions: np.array, states_info: Dict[str, Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
+    def __init__(self, actions: np.array, states_info: Tuple[Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
         super().__init__(actions, states_info, lr, discount_rate)
         self.epsilon = 0.5
         self.epsilon_decay = 0.0001
@@ -133,7 +133,7 @@ class EpsilonGreedyQLearning(QLearning):
 
 
 class ExplorationFuncQLearning(QLearning):
-    def __init__(self, actions: np.array, states_info: Dict[str, Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
+    def __init__(self, actions: np.array, states_info: Tuple[Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
         super().__init__(actions, states_info, lr, discount_rate)   
         self.curiosity = 1
         self.curiosity_decay = 0.001
@@ -164,7 +164,7 @@ class ExplorationFuncQLearning(QLearning):
     
 
 class Sarsa(EpsilonGreedyQLearning):
-    def __init__(self, actions: np.array, states_info: Dict[str, Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
+    def __init__(self, actions: np.array, states_info: Tuple[Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
         super().__init__(actions, states_info, lr, discount_rate)
 
     def next_action_strategy(self) -> Tuple[float, int]:
