@@ -1,9 +1,8 @@
-from typing import Tuple, Dict, Any
 from abc import ABC, abstractmethod
 import numpy as np
 
 
-class RLAlgorithm(ABC):    
+class RLAgent(ABC):    
     @abstractmethod
     def execute(self, obs: np.array, reward: float) -> np.array:
         ...

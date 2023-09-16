@@ -3,13 +3,12 @@ Solve the MountainCar environment with Q-learning algorithm.
 """
 import keyboard
 import random
-from typing import Tuple, Dict, Any, Type
+from typing import Tuple
 import gymnasium as gym
 import numpy as np
-from algorithms.tabularValue import QLearning, EpsilonGreedyQLearning, ExplorationFuncQLearning, Sarsa
-from algorithms.tabularValue import TabularValueRL
-from algorithms.utils import get_states_delta_from_n_intevals
-from collections import namedtuple
+from algorithms import RLAgent
+from algorithms.tabularValue import TabularValueRLAgent, QLearningAgent, \
+                                    EpsilonGreedyAgent, ExplorationFuncAgent, SarsaAgent
 
 
 def reset_env(env: gym.Env) -> Tuple[np.array]:
@@ -18,24 +17,8 @@ def reset_env(env: gym.Env) -> Tuple[np.array]:
     return observation, action
 
 
-def main(test: bool, n_episodes: int, algorithm_type: Type[TabularValueRL]):
-    env = gym.make("MountainCar-v0", render_mode='human' if test else None)  
-    n_intervals = [20, 20]      
-    states_delta = get_states_delta_from_n_intevals(env=env, n_intervals=n_intervals)    
-    
-    states_grid = namedtuple("states_grid", ["delta_dim", "low_val", "n_intervals"])
-    states_info: Tuple[Any] = states_grid(delta_dim=states_delta,
-                                          low_val=env.observation_space.low,
-                                          n_intervals=[d+1 for d in n_intervals])
-   # actions 
-            # + discrete: action {
-            #                       0: accelerate left
-            #                       1: don't accelerate
-            #                       2: accelerate right
-            #                    }                    
-    agent = algorithm_type(states_info=states_info,
-                           actions=np.array([0, 1, 2]))
-    
+def run(test: bool, n_episodes: int, env: gym.Env,  agent: RLAgent):    
+
     if test:
         agent.load_model()
         agent.set_test_setup()
@@ -80,19 +63,34 @@ def main(test: bool, n_episodes: int, algorithm_type: Type[TabularValueRL]):
     env.close()
         
 
-if __name__ == "__main__":    
-    n_episodes=8000
-    #algorithm_type=QLearning
-    #algorithm_type=EpsilonGreedyQLearning
-    algorithm_type=ExplorationFuncQLearning
-    #algorithm_type=Sarsa
+def main():
+    env = gym.make("MountainCar-v0", render_mode=None) 
+   
+   # actions 
+            # + discrete: action {
+            #                       0: accelerate left
+            #                       1: don't accelerate
+            #                       2: accelerate right
+            #                    }                    
+    obs_ranges = np.array([env.observation_space.low, env.observation_space.high])
+    actions = np.array([0, 1, 2])
 
+    #agent = QLearningAgent(obs_ranges=obs_ranges, actions=actions)
+    #agent = EpsilonGreedyAgent(obs_ranges=obs_ranges, actions=actions)
+    #agent = ExplorationFuncAgent(obs_ranges=obs_ranges, actions=actions)
+    agent = SarsaAgent(obs_ranges=obs_ranges, actions=actions)
+
+    n_episodes=2000
 
     # training phase 
-    print("\n\nTraining:\n")
-    main(test=False, n_episodes=n_episodes, algorithm_type=algorithm_type)
-
+    print("\n\nTraining:\n")     
+    run(test=False, n_episodes=n_episodes, env=env, agent=agent)
 
     # testing phase
     print("\n\nTesting:\n")
-    main(test=True, n_episodes=n_episodes, algorithm_type=algorithm_type)
+    env = gym.make("MountainCar-v0", render_mode='human')
+    run(test=True, n_episodes=n_episodes, env=env, agent=agent)
+
+
+if __name__ == "__main__":        
+    main()

@@ -1,17 +1,25 @@
 import os 
 import random 
 from abc import abstractmethod
-from typing import Any, Tuple, Dict
-from algorithms import RLAlgorithm
+from typing import Any, Tuple, List
+from algorithms import RLAgent
 import numpy as np
+from algorithms.utils import get_states_delta_from_n_intervals
+from collections import namedtuple
 
 
-class TabularValueRL(RLAlgorithm):
+class TabularValueRLAgent(RLAgent):
     def __init__(self, actions: np.array,
-                 states_info: Tuple[Any]) -> None:        
+                 obs_ranges: Tuple[Any], 
+                 n_intervals: List[int] = [20, 20]) -> None:        
+        states_delta = get_states_delta_from_n_intervals(obs_ranges=obs_ranges, n_intervals=n_intervals)    
+        
+        states_grid = namedtuple("states_grid", ["delta_dim", "low_val", "n_intervals"])
+        self.states_info: Tuple[Any] = states_grid(delta_dim=states_delta,
+                                              low_val=obs_ranges[0, :],
+                                              n_intervals=[d+1 for d in n_intervals])
         self.actions = actions
-        self.action_index = None
-        self.states_info = states_info
+        self.action_index = None        
         self.curr_state_index = None           
         self.prev_state_index = None   
     
@@ -30,28 +38,16 @@ class TabularValueRL(RLAlgorithm):
     @abstractmethod
     def next_action_strategy(self) -> Tuple[float, int]:
         ...
+    
 
-    def execute(self, obs: np.array, reward: float) -> np.array:
-        ...
-
-    def save_model(self) -> None:
-        ...
-
-    def load_model(self) -> None:
-        ...
-
-    def set_test_setup(self) -> None:
-        ...
-
-
-
-class QLearning(TabularValueRL):
+class QLearningAgent(TabularValueRLAgent):
     def __init__(self, actions: np.array,
-                 states_info: Tuple[Any],
+                 obs_ranges: Tuple[Any],
+                 n_intervals: List[int] = [20, 20], 
                  lr: float = .1, 
-                 discount_rate: float = .95) -> None:
-        super().__init__(actions, states_info)                     
-        self.q_star = np.zeros(shape=tuple(states_info.n_intervals) + (len(actions), ))       
+                 discount_rate: float = .95) -> None:                    
+        super().__init__(actions=actions, obs_ranges=obs_ranges, n_intervals=n_intervals)                     
+        self.q_star = np.zeros(shape=tuple(self.states_info.n_intervals) + (len(actions), ))       
         self.lr = lr
         self.discount_rate = discount_rate
 
@@ -65,8 +61,11 @@ class QLearning(TabularValueRL):
         self.prev_state_index = self.get_nearest_state_index(obs=obs)
         self.action_index = action
 
+    def set_test_setup(self) -> None:
+        pass
+    
     def episode_exit_setup(self):
-        ...    
+        pass    
 
     def next_action_strategy(self) -> Tuple[float, int]:
         """
@@ -101,9 +100,16 @@ class QLearning(TabularValueRL):
             self.q_star = np.load(self.model_path)
     
 
-class EpsilonGreedyQLearning(QLearning):
-    def __init__(self, actions: np.array, states_info: Tuple[Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
-        super().__init__(actions, states_info, lr, discount_rate)
+class EpsilonGreedyAgent(QLearningAgent):
+    def __init__(self, actions: np.array,
+                  obs_ranges: Tuple[Any],
+                  n_intervals: List[int] = [20, 20], 
+                  lr: float = .1, 
+                  discount_rate: float = .95) -> None:        
+        super().__init__(actions=actions,
+                         obs_ranges=obs_ranges,
+                         n_intervals=n_intervals,
+                         lr=lr, discount_rate=discount_rate)             
         self.epsilon = 0.5
         self.epsilon_decay = 0.0001
 
@@ -132,9 +138,16 @@ class EpsilonGreedyQLearning(QLearning):
         return optimal_exp_val, next_action_index
 
 
-class ExplorationFuncQLearning(QLearning):
-    def __init__(self, actions: np.array, states_info: Tuple[Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
-        super().__init__(actions, states_info, lr, discount_rate)   
+class ExplorationFuncAgent(QLearningAgent):
+    def __init__(self, actions: np.array,
+                  obs_ranges: Tuple[Any],
+                  n_intervals: List[int] = [20, 20], 
+                  lr: float = .1, 
+                  discount_rate: float = .95) -> None:        
+        super().__init__(actions=actions,
+                         obs_ranges=obs_ranges,
+                         n_intervals=n_intervals,
+                         lr=lr, discount_rate=discount_rate)                 
         self.curiosity = 1
         self.curiosity_decay = 0.001
         # n is the number of times action `a` was chosen in state `s` 
@@ -163,9 +176,16 @@ class ExplorationFuncQLearning(QLearning):
         return optimal_exp_val, next_action_index
     
 
-class Sarsa(EpsilonGreedyQLearning):
-    def __init__(self, actions: np.array, states_info: Tuple[Any], lr: float = 0.1, discount_rate: float = 0.95) -> None:
-        super().__init__(actions, states_info, lr, discount_rate)
+class SarsaAgent(EpsilonGreedyAgent):
+    def __init__(self, actions: np.array,
+                  obs_ranges: Tuple[Any],
+                  n_intervals: List[int] = [20, 20], 
+                  lr: float = .1, 
+                  discount_rate: float = .95) -> None:        
+        super().__init__(actions=actions,
+                         obs_ranges=obs_ranges,
+                         n_intervals=n_intervals,
+                         lr=lr, discount_rate=discount_rate)                 
 
     def next_action_strategy(self) -> Tuple[float, int]:
         """
