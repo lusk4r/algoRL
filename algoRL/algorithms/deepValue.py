@@ -7,14 +7,17 @@ from typing import Deque, Optional
 from dataclasses import dataclass 
 from collections import deque, namedtuple
 from algorithms import RLAgent
-from torch import save, load, from_numpy, max, cat
-from torch.nn import Module, Linear, Sequential, MSELoss
+from torch import save, load, from_numpy, max, cat, no_grad
+from torch.nn import Module, Linear, MSELoss
 from torch.nn.functional import relu
 from torch.cuda import is_available
 from torch.optim import AdamW
 
 
 class DeepValueRLAgent(RLAgent):
+    def __init__(self) -> None:
+        super().__init__()
+
     @abstractmethod
     def episode_start_setup(self, obs: np.array, action: np.array):
         ...
@@ -42,6 +45,7 @@ class SimpleDQNAgent(DeepValueRLAgent):
                  batch_size: int, lr: float,
                  epsilon: float = 0.5, epsilon_decay: float = 0.001, 
                  device: Optional[str] = None) -> None: 
+        super().__init__()
         self.device = device 
         if self.device is None:
             self.device = 'cuda' if is_available() else 'cpu'                    
@@ -85,9 +89,9 @@ class SimpleDQNAgent(DeepValueRLAgent):
 
     def execute(self, obs: np.array, reward: np.array) -> float:                                
         # put data in replay memory 
-        self.memory.insert_example(Example(s_t=self.prev_state, 
+        self.memory.insert_example(Example(s_t=from_numpy(self.prev_state), 
                                            a_t=self.action_index, 
-                                           s_next_t=obs, 
+                                           s_next_t=from_numpy(obs), 
                                            reward_t=reward))
         
         # optimization loop 
@@ -101,18 +105,21 @@ class SimpleDQNAgent(DeepValueRLAgent):
         
         # prepare training set 
         x, y = None, None
-        for (s_t, a_t, s_next_t, reward_t) in samples:                    
-            current_q = self.policy_nn(from_numpy(s_t).to(self.device))            
-            next_q = self.target_nn(from_numpy(s_next_t).to(self.device))
+        with no_grad():
+            for (s_t, a_t, s_next_t, reward_t) in samples:                    
+                current_q = self.policy_nn(s_t.to(self.device))            
+                next_q = self.target_nn(s_next_t.to(self.device))
 
-            current_q[a_t] += reward_t + self.discount * max(next_q)
-                                    
-            if x is None:
-                x = from_numpy(s_t).unsqueeze(0).to(self.device)
-                y = current_q.unsqueeze(0).to(self.device)
-            else:
-                x = cat((x, from_numpy(s_t).unsqueeze(0).to(self.device)), dim=0).to(self.device)
-                y = cat((y, current_q.unsqueeze(0).to(self.device)), dim=0).to(self.device)
+                current_q[a_t] += reward_t + self.discount * max(next_q)
+                                        
+                if x is None:
+                    x = s_t.unsqueeze(0)
+                    y = current_q.unsqueeze(0)
+                else:
+                    x = cat((x, s_t.unsqueeze(0)), dim=0)
+                    y = cat((y, current_q.unsqueeze(0)), dim=0)
+        x = x.to(self.device)
+        y = y.to(self.device)
 
         # train policy nn 
         loss = self.loss_func(self.policy_nn(x), y)        
