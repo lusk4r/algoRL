@@ -1,5 +1,5 @@
 """
-Solve the MountainCar environment with Q-learning algorithm. 
+Solve the MountainCar environment with Reinforcement Learning 
 """
 import keyboard
 import random
@@ -9,6 +9,7 @@ import numpy as np
 from algorithms import RLAgent
 from algorithms.tabularValue import TabularValueRLAgent, QLearningAgent, \
                                     EpsilonGreedyAgent, ExplorationFuncAgent, SarsaAgent
+from algorithms.deepValue import SimpleDQNAgent
 
 
 def reset_env(env: gym.Env) -> Tuple[np.array]:
@@ -20,27 +21,25 @@ def reset_env(env: gym.Env) -> Tuple[np.array]:
 def run(test: bool, n_episodes: int, env: gym.Env,  agent: RLAgent):    
 
     if test:
-        agent.load_model()
         agent.set_test_setup()
         
     n_steps = 0    
     steps_list = [0]
     for episode in range(n_episodes):
         if episode%50 == 0:
-            print(f"episode: {episode} n_steps: {np.array(steps_list).mean()}", flush=True)
-            agent.save_model()  
+            print(f"episode: {episode} n_steps: {np.array(steps_list).mean()}", flush=True)            
             steps_list = []
 
         steps_list.append(n_steps)
         observation, action = reset_env(env=env)
-        agent.episode_start_setup(obs=observation, action=action)
+        agent.episode_start_setup(obs=observation, action_index=action)
         
         terminated = False                
         n_steps = 0
         while not terminated:         
             observation, reward, terminated, _, _ = env.step(action)                                           
 
-            action = agent.execute(obs=observation, reward=reward)        
+            action = agent.execute(obs=observation, reward=reward)               
             n_steps += 1            
             
             if test:
@@ -79,7 +78,7 @@ def main():
     #agent = EpsilonGreedyAgent(obs_ranges=obs_ranges, actions=actions)
     #agent = ExplorationFuncAgent(obs_ranges=obs_ranges, actions=actions)
     agent = SarsaAgent(obs_ranges=obs_ranges, actions=actions)
-
+    
     n_episodes=2000
 
     # training phase 

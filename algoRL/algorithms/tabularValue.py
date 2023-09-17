@@ -12,6 +12,7 @@ class TabularValueRLAgent(RLAgent):
     def __init__(self, actions: np.array,
                  obs_ranges: Tuple[Any], 
                  n_intervals: List[int] = [20, 20]) -> None:        
+        super().__init__()
         states_delta = get_states_delta_from_n_intervals(obs_ranges=obs_ranges, n_intervals=n_intervals)    
         
         states_grid = namedtuple("states_grid", ["delta_dim", "low_val", "n_intervals"])
@@ -46,26 +47,21 @@ class QLearningAgent(TabularValueRLAgent):
                  n_intervals: List[int] = [20, 20], 
                  lr: float = .1, 
                  discount_rate: float = .95) -> None:                    
-        super().__init__(actions=actions, obs_ranges=obs_ranges, n_intervals=n_intervals)                     
+        super().__init__(actions=actions, obs_ranges=obs_ranges,
+                         n_intervals=n_intervals)                     
         self.q_star = np.zeros(shape=tuple(self.states_info.n_intervals) + (len(actions), ))       
         self.lr = lr
-        self.discount_rate = discount_rate
-
-        model_dir = os.path.join(\
-            os.path.abspath(os.path.dirname(__file__)), '..', 'models')
-        if not os.path.isdir(model_dir):
-            os.makedirs(model_dir)
-        self.model_path = os.path.join(model_dir, 'q_step.npy')
+        self.discount_rate = discount_rate        
                
-    def episode_start_setup(self, obs: np.array, action: np.array):
+    def episode_start_setup(self, obs: np.array, action_index: int):
         self.prev_state_index = self.get_nearest_state_index(obs=obs)
-        self.action_index = action
+        self.action_index = action_index
 
-    def set_test_setup(self) -> None:
-        pass
-    
+    def set_test_setup(self) -> None:        
+        self.load_model(model_name='q_step')
+
     def episode_exit_setup(self):
-        pass    
+        self.save_model(model_name='q_step')    
 
     def next_action_strategy(self) -> Tuple[float, int]:
         """
@@ -92,12 +88,17 @@ class QLearningAgent(TabularValueRLAgent):
 
         return self.actions[self.action_index]
         
-    def save_model(self) -> None:
-        np.save(self.model_path, self.q_star)
+    def save_model(self, model_name: str) -> None:
+        model_path = os.path.join(self.model_dir, f'{model_name}.npy')
+        np.save(model_path, self.q_star)
     
-    def load_model(self) -> None:    
-        if os.path.isfile(self.model_path):
-            self.q_star = np.load(self.model_path)
+    def load_model(self, model_name: str) -> None:    
+        model_path = os.path.join(self.model_dir, f'{model_name}.npy')        
+        if not os.path.isfile(model_path):
+            raise ValueError(f"Model {model_path} not available.",
+                              "Start a new training routine or insert a previously trained model into `models` folder.")
+        if os.path.isfile(model_path):
+            self.q_star = np.load(model_path)
     
 
 class EpsilonGreedyAgent(QLearningAgent):
@@ -116,9 +117,11 @@ class EpsilonGreedyAgent(QLearningAgent):
     def episode_exit_setup(self):
         if self.epsilon >= 0.05:    
             self.epsilon -= self.epsilon_decay          
+        super().episode_exit_setup()
 
     def set_test_setup(self) -> None:
         self.epsilon = 0.05
+        super().set_test_setup()
 
     def next_action_strategy(self) -> Tuple[float, int]:
         """
@@ -156,9 +159,11 @@ class ExplorationFuncAgent(QLearningAgent):
     def episode_exit_setup(self):
         if self.curiosity >= 0.0:    
             self.curiosity -= self.curiosity_decay
+        super().episode_exit_setup()
 
     def set_test_setup(self) -> None:
         self.curiosity = 0.0
+        super().set_test_setup()
 
     def next_action_strategy(self) -> Tuple[float, int]:
         """
