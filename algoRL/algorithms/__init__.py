@@ -11,7 +11,7 @@ class RLAgent(ABC):
             os.makedirs(self.model_dir)        
 
     @abstractmethod
-    def execute(self, obs: np.array, reward: float) -> np.array:
+    def execute(self, obs: np.array, reward: float, terminal: bool) -> np.array:
         ...
     
     @abstractmethod

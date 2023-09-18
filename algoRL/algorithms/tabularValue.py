@@ -72,17 +72,17 @@ class QLearningAgent(TabularValueRLAgent):
         next_action_index = np.argmax(self.q_star[self.curr_state_index])        
         return self.q_star[self.curr_state_index + (next_action_index,)], next_action_index
 
-    def execute(self, obs: np.array, reward: float) -> Any:                
+    def execute(self, obs: np.array, reward: float, terminal: bool) -> Any:                
         if self.prev_state_index is None:
             raise ValueError("Set previous state index")
         
         self.curr_state_index = self.get_nearest_state_index(obs=obs)                                    
         optimal_val, next_action_index = self.next_action_strategy()
-        
+                
         self.q_star[self.prev_state_index + (self.action_index, )] += \
             self.lr*(reward+self.discount_rate*optimal_val - 
-                    self.q_star[self.prev_state_index + (self.action_index, )])
-             
+                    self.q_star[self.prev_state_index + (self.action_index, )])                    
+
         self.action_index = next_action_index        
         self.prev_state_index = self.curr_state_index                
 

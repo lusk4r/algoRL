@@ -7,9 +7,8 @@ from typing import Deque, Optional
 from dataclasses import dataclass 
 from collections import deque, namedtuple
 from algorithms import RLAgent
-from torch import save, load, from_numpy, max, cat, no_grad
-from torch.nn import Module, Linear, MSELoss
-from torch.nn.functional import relu
+from torch import save, load, from_numpy, max, argmax, cat, no_grad
+from torch.nn import Module, Linear, MSELoss, ReLU
 from torch.cuda import is_available
 from torch.optim import AdamW
 
@@ -19,7 +18,7 @@ class DeepValueRLAgent(RLAgent):
         super().__init__()
 
     @abstractmethod
-    def episode_start_setup(self, obs: np.array, action: np.array):
+    def episode_start_setup(self, obs: np.array, action: np.array, terminal: bool):
         ...
 
     @abstractmethod
@@ -30,13 +29,14 @@ class DeepValueRLAgent(RLAgent):
 class FCNetwork(Module):
     def __init__(self, in_features: int, out_features: int) -> None:
         super().__init__()
+        self.relu = ReLU()
         self.l_1 = Linear(in_features, 128)
         self.l_2 = Linear(128, 128)
         self.l_3 = Linear(128, out_features)
 
     def forward(self, x):
-        x = relu(self.l_1(x))
-        x = relu(self.l_2(x))
+        x = self.relu(self.l_1(x))
+        x = self.relu(self.l_2(x))
         return self.l_3(x)    
     
 
@@ -50,7 +50,7 @@ class SimpleDQNAgent(DeepValueRLAgent):
         if self.device is None:
             self.device = 'cuda' if is_available() else 'cpu'                    
 
-        self.memory = ReplayMemory(examples=deque([], maxlen=10**6))        
+        self.memory = ReplayMemory(examples=deque([], maxlen=50000))        
         self.policy_nn = FCNetwork(in_features=obs_ranges.shape[1], 
                                    out_features=actions.reshape(-1, 1).shape[0]).to(self.device)        
         self.target_nn = deepcopy(self.policy_nn).to(self.device)
@@ -66,9 +66,8 @@ class SimpleDQNAgent(DeepValueRLAgent):
 
         self.action_space = actions        
 
-        self.steps_before_update = 10 
+        self.steps_before_update = 5 
         self.update_target_count = 0
-
         
     def episode_start_setup(self, obs: np.array, action_index: int):            
         self.prev_state = obs
@@ -78,21 +77,22 @@ class SimpleDQNAgent(DeepValueRLAgent):
         self.epsilon = 0.05
         self.load_model(model_name='dqn_episode')
     
-    def episode_exit_setup(self):
+    def episode_exit_setup(self):            
         if self.epsilon >= 0.05:    
             self.epsilon -= self.epsilon_decay    
 
         self.save_model(model_name='dqn_episode')  
+    
+        mean_loss = np.array(self.losses).sum()/len(self.losses)
+        print(f"avg loss: {mean_loss}")        
 
-        mean_loss = np.array(self.losses)/len(self.losses)
-        print(f"avg loss: {mean_loss}")
-
-    def execute(self, obs: np.array, reward: np.array) -> float:                                
+    def execute(self, obs: np.array, reward: np.array, terminal: bool) -> float:                                
         # put data in replay memory 
         self.memory.insert_example(Example(s_t=from_numpy(self.prev_state), 
                                            a_t=self.action_index, 
                                            s_next_t=from_numpy(obs), 
-                                           reward_t=reward))
+                                           reward_t=reward, 
+                                           terminal=terminal))
         
         # optimization loop 
         # sample data
@@ -106,11 +106,15 @@ class SimpleDQNAgent(DeepValueRLAgent):
         # prepare training set 
         x, y = None, None
         with no_grad():
-            for (s_t, a_t, s_next_t, reward_t) in samples:                    
+            for (s_t, a_t, s_next_t, reward_t, terminal) in samples:                    
                 current_q = self.policy_nn(s_t.to(self.device))            
                 next_q = self.target_nn(s_next_t.to(self.device))
 
-                current_q[a_t] += reward_t + self.discount * max(next_q)
+                if terminal:
+                    #current_q[a_t] = reward_t
+                    current_q[a_t] = 0
+                else:
+                    current_q[a_t] = reward_t + self.discount * max(next_q)
                                         
                 if x is None:
                     x = s_t.unsqueeze(0)
@@ -123,12 +127,13 @@ class SimpleDQNAgent(DeepValueRLAgent):
 
         # train policy nn 
         loss = self.loss_func(self.policy_nn(x), y)        
-        self.losses.append(loss)        
-        self.optimizer.zero_grad() # intialize 
+        self.losses.append(loss.item())        
+        
+        self.optimizer.zero_grad() 
         loss.backward()
         self.optimizer.step()
 
-        # target nn weights update logic
+        # update target_nn weights 
         if self.update_target_count >= self.steps_before_update:
             self.target_nn.load_state_dict(self.policy_nn.state_dict())
             self.update_target_count = 0        
@@ -140,8 +145,8 @@ class SimpleDQNAgent(DeepValueRLAgent):
 
         if uniform(0.0, 1.0) < self.epsilon:
             self.action_index = randint(0, len(self.action_space)-1)
-        else:
-            self.action_index = self.policy_nn.forward(from_numpy(obs).to(self.device)).argmax()
+        else:            
+            self.action_index = argmax(self.policy_nn.forward(from_numpy(obs).to(self.device)), dim=0).item()            
         
         return self.action_space[self.action_index]
 
@@ -159,7 +164,7 @@ class SimpleDQNAgent(DeepValueRLAgent):
              os.path.join(self.model_dir, f'{model_name}'))        
 
 
-Example = namedtuple("example", ['s_t', 'a_t', 's_next_t', 'reward_t'])
+Example = namedtuple("example", ['s_t', 'a_t', 's_next_t', 'reward_t', 'terminal'])
 
 
 class ReplayMemoryNotReady(Exception):

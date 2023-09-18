@@ -26,7 +26,7 @@ def run(test: bool, n_episodes: int, env: gym.Env,  agent: RLAgent):
     n_steps = 0    
     steps_list = [0]
     for episode in range(n_episodes):
-        if episode%50 == 0:
+        if episode%5 == 0:
             print(f"episode: {episode} n_steps: {np.array(steps_list).mean()}", flush=True)            
             steps_list = []
 
@@ -39,7 +39,7 @@ def run(test: bool, n_episodes: int, env: gym.Env,  agent: RLAgent):
         while not terminated:         
             observation, reward, terminated, _, _ = env.step(action)                                           
 
-            action = agent.execute(obs=observation, reward=reward)               
+            action = agent.execute(obs=observation, reward=reward, terminal=terminated)               
             n_steps += 1            
             
             if test:
@@ -77,8 +77,10 @@ def main():
     #agent = QLearningAgent(obs_ranges=obs_ranges, actions=actions)
     #agent = EpsilonGreedyAgent(obs_ranges=obs_ranges, actions=actions)
     #agent = ExplorationFuncAgent(obs_ranges=obs_ranges, actions=actions)
-    agent = SarsaAgent(obs_ranges=obs_ranges, actions=actions)
-    
+    #agent = SarsaAgent(obs_ranges=obs_ranges, actions=actions)
+    agent = SimpleDQNAgent(obs_ranges=obs_ranges, actions=actions, 
+                           batch_size=64, lr=0.001)
+
     n_episodes=2000
 
     # training phase 
