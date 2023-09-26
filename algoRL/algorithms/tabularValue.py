@@ -11,7 +11,7 @@ from collections import namedtuple
 class TabularValueRLAgent(RLAgent):
     def __init__(self, actions: np.array,
                  obs_ranges: Tuple[Any], 
-                 n_intervals: List[int] = [20, 20]) -> None:        
+                 n_intervals: List[int]) -> None:        
         super().__init__()
         states_delta = get_states_delta_from_n_intervals(obs_ranges=obs_ranges, n_intervals=n_intervals)    
         
@@ -43,10 +43,10 @@ class TabularValueRLAgent(RLAgent):
 
 class QLearningAgent(TabularValueRLAgent):
     def __init__(self, actions: np.array,
-                 obs_ranges: Tuple[Any],
-                 n_intervals: List[int] = [20, 20], 
-                 lr: float = .1, 
-                 discount_rate: float = .95) -> None:                    
+                 obs_ranges: Tuple[Any],                 
+                 n_intervals: List[int],
+                 lr: float = .1,                 
+                 discount_rate: float = .95) -> None:          
         super().__init__(actions=actions, obs_ranges=obs_ranges,
                          n_intervals=n_intervals)                     
         self.q_star = np.zeros(shape=tuple(self.states_info.n_intervals) + (len(actions), ))       
@@ -104,12 +104,12 @@ class QLearningAgent(TabularValueRLAgent):
 class EpsilonGreedyAgent(QLearningAgent):
     def __init__(self, actions: np.array,
                   obs_ranges: Tuple[Any],
-                  n_intervals: List[int] = [20, 20], 
+                  n_intervals: List[int], 
                   lr: float = .1, 
                   discount_rate: float = .95) -> None:        
         super().__init__(actions=actions,
+                         n_intervals=n_intervals, 
                          obs_ranges=obs_ranges,
-                         n_intervals=n_intervals,
                          lr=lr, discount_rate=discount_rate)             
         self.epsilon = 0.5
         self.epsilon_decay = 0.0001
@@ -144,12 +144,12 @@ class EpsilonGreedyAgent(QLearningAgent):
 class ExplorationFuncAgent(QLearningAgent):
     def __init__(self, actions: np.array,
                   obs_ranges: Tuple[Any],
-                  n_intervals: List[int] = [20, 20], 
+                  n_intervals: List[int],
                   lr: float = .1, 
                   discount_rate: float = .95) -> None:        
         super().__init__(actions=actions,
                          obs_ranges=obs_ranges,
-                         n_intervals=n_intervals,
+                         n_intervals=n_intervals, 
                          lr=lr, discount_rate=discount_rate)                 
         self.curiosity = 1
         self.curiosity_decay = 0.001
@@ -184,12 +184,12 @@ class ExplorationFuncAgent(QLearningAgent):
 class SarsaAgent(EpsilonGreedyAgent):
     def __init__(self, actions: np.array,
                   obs_ranges: Tuple[Any],
-                  n_intervals: List[int] = [20, 20], 
+                  n_intervals: List[int],
                   lr: float = .1, 
                   discount_rate: float = .95) -> None:        
         super().__init__(actions=actions,
-                         obs_ranges=obs_ranges,
                          n_intervals=n_intervals,
+                         obs_ranges=obs_ranges,
                          lr=lr, discount_rate=discount_rate)                 
 
     def next_action_strategy(self) -> Tuple[float, int]:

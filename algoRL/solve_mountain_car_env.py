@@ -9,7 +9,7 @@ import numpy as np
 from algorithms import RLAgent
 from algorithms.tabularValue import TabularValueRLAgent, QLearningAgent, \
                                     EpsilonGreedyAgent, ExplorationFuncAgent, SarsaAgent
-from algorithms.deepValue import SimpleDQNAgent
+from algorithms.deepValue import SimpleDQNAgent, TinyDQNAgent
 
 
 def reset_env(env: gym.Env) -> Tuple[np.array]:
@@ -73,13 +73,14 @@ def main():
             #                    }                    
     obs_ranges = np.array([env.observation_space.low, env.observation_space.high])
     actions = np.array([0, 1, 2])
+    n_intervals = [20] * obs_ranges.shape[1]
 
-    #agent = QLearningAgent(obs_ranges=obs_ranges, actions=actions)
-    #agent = EpsilonGreedyAgent(obs_ranges=obs_ranges, actions=actions)
-    #agent = ExplorationFuncAgent(obs_ranges=obs_ranges, actions=actions)
-    #agent = SarsaAgent(obs_ranges=obs_ranges, actions=actions)
-    agent = SimpleDQNAgent(obs_ranges=obs_ranges, actions=actions, 
-                           batch_size=64, lr=0.001)
+    agent = QLearningAgent(obs_ranges=obs_ranges, actions=actions, n_intervals=n_intervals)
+    #agent = EpsilonGreedyAgent(obs_ranges=obs_ranges, actions=actions, n_intervals=n_intervals)
+    #agent = ExplorationFuncAgent(obs_ranges=obs_ranges, actions=actions, n_intervals=n_intervals)
+    #agent = SarsaAgent(obs_ranges=obs_ranges, actions=actions, n_intervals=n_intervals)
+    #agent = SimpleDQNAgent(obs_ranges=obs_ranges, actions=actions, 
+    #                       batch_size=64, lr=0.001)    
 
     n_episodes=2000
 
